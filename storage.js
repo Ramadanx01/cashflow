@@ -205,5 +205,18 @@ const CashflowStorage = (() => {
     return rows.filter(predicate);
   }
 
-  return { initialize, readSnapshot, replaceSnapshot, get, put, remove, query };
+  async function destroy() {
+    await writeQueue;
+    const database = await databasePromise;
+    database.close();
+    databasePromise = null;
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(DATABASE_NAME);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error || new Error('Unable to delete local database.'));
+      request.onblocked = () => reject(new Error('Close other tabs running this app, then try deleting its data again.'));
+    });
+  }
+
+  return { initialize, readSnapshot, replaceSnapshot, get, put, remove, query, destroy };
 })();

@@ -1640,27 +1640,104 @@ async function preloadGoogleDriveTools() {
 }
 
 function updateGoogleDriveControls() {
-  const configured = CashflowDriveBackup.isConfigured() && driveToolsReady;
+  const configured = CashflowDriveBackup.isConfigured();
+  const toolsReady = configured && driveToolsReady;
   const accountLinked = Boolean(linkedGoogleAccount?.email);
   const setDisabled = (id, disabled) => {
     const button = document.getElementById(id);
     if (button) button.disabled = disabled;
   };
-  setDisabled('drive-connect-btn', !configured);
-  setDisabled('drive-disconnect-btn', !configured || !accountLinked);
-  setDisabled('drive-backup-export-btn', !configured || !accountLinked);
-  setDisabled('drive-backup-restore-btn', !configured || !accountLinked);
-  setDisabled('drive-folder-btn', !configured || !accountLinked);
+  setDisabled('drive-connect-btn', false);
+  setDisabled('drive-disconnect-btn', !toolsReady || !accountLinked);
+  setDisabled('drive-backup-export-btn', false);
+  setDisabled('drive-backup-restore-btn', false);
+  setDisabled('drive-folder-btn', false);
 
   const status = document.getElementById('drive-backup-status');
-  if (!status || !configured) return;
+  if (!status) return;
+  if (!configured) {
+    status.textContent = 'الربط يحتاج إعداد Google Cloud مرة واحدة. اضغط «ربط حساب Google» لعرض المطلوب.';
+    return;
+  }
+  if (!toolsReady) {
+    status.textContent = 'جاري تجهيز أدوات Google...';
+    return;
+  }
   status.textContent = accountLinked
     ? `مرتبط بالحساب ${linkedGoogleAccount.email}${linkedGoogleFolder ? ` · مجلد النسخ: ${linkedGoogleFolder.name}` : ' · اختر مجلد النسخ عند أول عملية حفظ'}`
     : 'اربط حساب Google مرة واحدة للبدء.';
 }
 
+function openGoogleDriveLinking() {
+  const configured = CashflowDriveBackup.isConfigured();
+  Swal.fire({
+    title: 'ربط Google Drive',
+    html: `
+      <div class="text-start">
+        <p>اربط حساب Google مرة واحدة، ثم اختر مجلد النسخ. لن يحفظ التطبيق كلمة مرورك أو رمز دخولك.</p>
+        <div class="alert alert-info small mb-3" id="drive-link-status" role="status" aria-live="polite">
+          ${configured ? 'جاري تجهيز اتصال Google...' : 'يلزم إعداد Google Cloud مرة واحدة قبل تسجيل الدخول.'}
+        </div>
+        <button type="button" class="btn btn-primary w-100 fw-bold" id="drive-link-start-btn">
+          <i class="uil uil-google-drive-alt me-1"></i> ربط الحساب
+        </button>
+        ${configured ? '' : '<a class="btn btn-link w-100 mt-2" href="./GOOGLE_DRIVE_SETUP.md" target="_blank" rel="noopener">فتح خطوات إعداد Google خطوة بخطوة</a>'}
+      </div>
+    `,
+    showConfirmButton: false,
+    showCloseButton: true,
+    didOpen: async () => {
+      const button = document.getElementById('drive-link-start-btn');
+      const status = document.getElementById('drive-link-status');
+      if (!configured) {
+        button.addEventListener('click', showGoogleDriveSetupInstructions);
+        return;
+      }
+      try {
+        await preloadGoogleDriveTools();
+        if (!driveToolsReady) throw new Error('تعذر تجهيز أدوات Google. تحقق من اتصال الإنترنت.');
+        button.disabled = false;
+        status.textContent = linkedGoogleAccount
+          ? `الحساب المرتبط: ${linkedGoogleAccount.email}. يمكنك تغيير الحساب بإعادة الربط.`
+          : 'جاهز. اضغط لفتح اختيار حساب Google والموافقة على الربط.';
+        button.addEventListener('click', linkGoogleDriveAccount);
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+  });
+}
+
+function showGoogleDriveSetupInstructions() {
+  Swal.fire({
+    icon: 'info',
+    title: 'إعداد Google مطلوب مرة واحدة',
+    html: `
+      <div class="text-start small">
+        <p>المتصفح لا يسمح للموقع بالدخول لحساب Google تلقائيًا. قبل الربط، يلزم إعداد بيانات التطبيق في Google Cloud:</p>
+        <ol>
+          <li>إنشاء مشروع وتفعيل Google Drive API وGoogle Picker API.</li>
+          <li>إنشاء OAuth Client ID وإضافة عنوان GitHub Pages ضمن Authorized JavaScript origins.</li>
+          <li>إنشاء API Key مقيد بـGoogle Picker API وموقعك.</li>
+          <li>وضع Client ID وAPI Key ورقم المشروع في CONFIG أعلى <code>drive-backup.js</code>.</li>
+        </ol>
+        <p class="mb-2">لا ترسل كلمة المرور أو Client Secret لأي شخص.</p>
+        <a href="./GOOGLE_DRIVE_SETUP.md" target="_blank" rel="noopener">فتح دليل الإعداد الكامل</a>
+      </div>
+    `,
+    confirmButtonText: 'حسنًا'
+  });
+}
+
 async function linkGoogleDriveAccount() {
-  if (!driveToolsReady) return;
+  if (!CashflowDriveBackup.isConfigured()) {
+    showGoogleDriveSetupInstructions();
+    return;
+  }
+  if (!driveToolsReady) {
+    Swal.fire({ icon: 'info', title: 'اتصال Google غير جاهز', text: 'افتح «ربط Google Drive» وانتظر اكتمال تحميل الأدوات ثم حاول مرة أخرى.' });
+    return;
+  }
   try {
     const linkPromise = CashflowDriveBackup.linkAccount();
     Swal.fire({ title: 'اختر حساب Google ووافق على الصلاحية...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1692,7 +1769,18 @@ async function unlinkGoogleDriveAccount() {
 }
 
 async function changeGoogleDriveFolder() {
-  if (!linkedGoogleAccount || !driveToolsReady) return;
+  if (!CashflowDriveBackup.isConfigured()) {
+    showGoogleDriveSetupInstructions();
+    return;
+  }
+  if (!linkedGoogleAccount) {
+    Swal.fire({ icon: 'info', title: 'اربط حساب Google أولاً', text: 'اربط الحساب من زر السايدبار قبل اختيار مجلد النسخ.' });
+    return;
+  }
+  if (!driveToolsReady) {
+    Swal.fire({ icon: 'info', title: 'اتصال Google غير جاهز', text: 'انتظر اكتمال تحميل أدوات Google ثم حاول مرة أخرى.' });
+    return;
+  }
   try {
     const tokenPromise = CashflowDriveBackup.requestAccessToken(linkedGoogleAccount.email);
     Swal.fire({ title: 'جارٍ الاتصال بحساب Google المرتبط...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1924,6 +2012,62 @@ function clearAllData() {
       Swal.fire({ icon: 'success', title: 'تم تفريغ النظام بنجاح' });
     }
   });
+}
+
+async function removeAppFromThisDevice() {
+  const confirmation = await Swal.fire({
+    icon: 'warning',
+    title: 'حذف بيانات التطبيق من هذا الجهاز؟',
+    html: '<div class="text-start small"><p>سيحذف هذا الإجراء نهائيًا:</p><ul><li>كل المحافظ والمعاملات والملاحظات والإعدادات المحلية.</li><li>بيانات الربط المحلية وملفات التطبيق المحفوظة للعمل دون إنترنت.</li><li>تسجيل Service Worker لهذا التطبيق على هذا العنوان.</li></ul><p class="fw-bold text-danger">لن يحذف ملفات النسخ الاحتياطية الموجودة في Google Drive، ولا يستطيع الموقع إزالة أيقونة التطبيق من قائمة تطبيقات الجهاز.</p><p>للمتابعة اكتب <strong>حذف التطبيق</strong> في المربع.</p></div>',
+    input: 'text',
+    inputPlaceholder: 'حذف التطبيق',
+    showCancelButton: true,
+    confirmButtonText: 'حذف نهائي من هذا الجهاز',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc3545',
+    preConfirm: value => {
+      if (value !== 'حذف التطبيق') {
+        Swal.showValidationMessage('اكتب «حذف التطبيق» للتأكيد.');
+        return false;
+      }
+      return true;
+    }
+  });
+  if (!confirmation.isConfirmed) return;
+
+  try {
+    await CashflowStorage.destroy();
+    ['axis_wallets', 'axis_transactions', 'axis_notes', 'axis_settings', 'axis_wallets_collapsed']
+      .forEach(key => localStorage.removeItem(key));
+
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames
+      .filter(name => name.startsWith('cashflow-app-'))
+      .map(name => caches.delete(name)));
+
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      const appWorkerUrl = new URL('./sw.js', location.href).href;
+      await Promise.all(registrations
+        .filter(registration => registration.active?.scriptURL === appWorkerUrl)
+        .map(registration => registration.unregister()));
+    }
+
+    storageReady = false;
+    Swal.fire({
+      icon: 'success',
+      title: 'تم حذف بيانات التطبيق المحلية',
+      html: '<div class="text-start small"><p>تم حذف قاعدة البيانات والكاش وإلغاء عامل الخدمة.</p><p>لإزالة أيقونة التطبيق نهائيًا، احذف التطبيق من قائمة تطبيقات الجهاز أو من قائمة المتصفح: <strong>إلغاء تثبيت التطبيق</strong>.</p><p>في Chrome/Edge على الكمبيوتر: قائمة التطبيق أو المتصفح ثم «إلغاء تثبيت». وعلى Android: اضغط مطولًا على الأيقونة ثم «إلغاء التثبيت».</p></div>',
+      confirmButtonText: 'حسنًا'
+    });
+  } catch (error) {
+    console.error('Application removal failed:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'لم يكتمل الحذف',
+      text: error.message || 'أغلق أي تبويب آخر مفتوح للتطبيق ثم أعد المحاولة.'
+    });
+  }
 }
 
 function closeSidebar() {
