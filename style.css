@@ -1,0 +1,1134 @@
+/* ==========================================================================
+   إدارة النقدية والأرباح — Axis Pay & Fawry
+   Visual theme: "Vault" — deep teal + warm gold, built for a cash & wallets
+   admin console. Overrides Bootstrap's default blue/grey theme site-wide
+   while keeping every original class name so app.js keeps working as-is.
+   ========================================================================== */
+
+:root {
+  /* ---- Brand palette — calm daily-ledger tone ---- */
+  --vault-teal:        #3d7d70;
+  --vault-teal-dark:   #2b5c52;
+  --vault-teal-darker: #1f453e;
+  --vault-teal-light:  #59a394;
+
+  --vault-navy:        #22323a;
+  --vault-navy-soft:   #2c414a;
+
+  --vault-gold:        #c69a4c;
+  --vault-gold-dark:   #a67e39;
+  --vault-gold-light:  #e8c583;
+
+  --vault-green:       #3d9457;
+  --vault-green-dark:  #2f7644;
+  --vault-red:         #c85454;
+  --vault-red-dark:    #a63f3f;
+  --vault-amber:       #c69a4c;
+  --vault-amber-dark:  #a67e39;
+  --vault-cyan:        #33879a;
+  --vault-slate:       #6b7a83;
+
+  --vault-bg:          #f6f4ef;
+  --vault-bg-soft:     #faf9f5;
+  --vault-surface:     #ffffff;
+  --vault-border:      #e7e3d9;
+  --vault-ink:         #2a2622;
+  --vault-ink-soft:    #6a655c;
+
+  --shadow-soft:  0 2px 8px rgba(42, 38, 34, 0.05);
+  --shadow-mid:   0 6px 18px rgba(42, 38, 34, 0.08);
+  --shadow-lift:  0 12px 26px rgba(42, 38, 34, 0.12);
+  --shadow-gold:  0 5px 14px rgba(198, 154, 76, 0.24);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+
+  --bottom-bar-height: 72px;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Cairo', sans-serif;
+  background: var(--vault-bg);
+  color: var(--vault-ink);
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--vault-teal);
+  color: #fff;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(61, 125, 112, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(61, 125, 112, 0.55); background-clip: padding-box; }
+
+/* Visible keyboard focus everywhere (accessibility) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+.btn:focus-visible,
+.sidebar-item:focus-visible {
+  outline: 2px solid var(--vault-gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.fw-extrabold {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   Top Navbar
+   ========================================================================== */
+
+.navbar.bg-dark {
+  background: var(--vault-navy) !important;
+  border-bottom: 1px solid rgba(198, 154, 76, 0.35);
+  box-shadow: var(--shadow-soft);
+}
+
+.brand-icon-badge {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 9px;
+  background: rgba(198, 154, 76, 0.18);
+  color: var(--vault-gold-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.navbar-brand span {
+  color: #f2efe8;
+  font-size: 0.92rem;
+}
+
+/* Compact navbar on phones so the daily-use toolbar never wraps to two lines */
+@media (max-width: 575.98px) {
+  .navbar.py-2 {
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+  }
+  .navbar-brand { font-size: 0.86rem; }
+  .navbar .btn-sm { padding: 0.28rem 0.5rem; font-size: 0.8rem; }
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+  border-radius: var(--radius-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, filter 0.15s ease;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  --bs-btn-bg: var(--vault-teal);
+  --bs-btn-border-color: var(--vault-teal);
+  --bs-btn-hover-bg: var(--vault-teal-dark);
+  --bs-btn-hover-border-color: var(--vault-teal-dark);
+  --bs-btn-active-bg: var(--vault-teal-dark);
+  --bs-btn-active-border-color: var(--vault-teal-darker);
+  --bs-btn-disabled-bg: var(--vault-teal);
+  --bs-btn-disabled-border-color: var(--vault-teal);
+  --bs-btn-focus-shadow-rgb: 15, 111, 102;
+}
+.btn-primary:hover { box-shadow: 0 6px 16px rgba(61, 125, 112, 0.30); }
+
+.btn-outline-primary {
+  --bs-btn-color: var(--vault-teal);
+  --bs-btn-border-color: var(--vault-teal);
+  --bs-btn-hover-bg: var(--vault-teal);
+  --bs-btn-hover-border-color: var(--vault-teal);
+}
+
+.btn-success {
+  --bs-btn-bg: var(--vault-green);
+  --bs-btn-border-color: var(--vault-green);
+  --bs-btn-hover-bg: var(--vault-green-dark);
+  --bs-btn-hover-border-color: var(--vault-green-dark);
+  --bs-btn-active-bg: var(--vault-green-dark);
+  --bs-btn-active-border-color: var(--vault-green-dark);
+  --bs-btn-disabled-bg: var(--vault-green);
+  --bs-btn-disabled-border-color: var(--vault-green);
+}
+.btn-success:hover { box-shadow: 0 6px 16px rgba(61, 148, 87, 0.30); }
+
+.btn-outline-success {
+  --bs-btn-color: var(--vault-green-dark);
+  --bs-btn-border-color: var(--vault-green);
+  --bs-btn-hover-bg: var(--vault-green);
+  --bs-btn-hover-border-color: var(--vault-green);
+}
+
+.btn-danger {
+  --bs-btn-bg: var(--vault-red);
+  --bs-btn-border-color: var(--vault-red);
+  --bs-btn-hover-bg: var(--vault-red-dark);
+  --bs-btn-hover-border-color: var(--vault-red-dark);
+  --bs-btn-active-bg: var(--vault-red-dark);
+  --bs-btn-active-border-color: var(--vault-red-dark);
+  --bs-btn-disabled-bg: var(--vault-red);
+  --bs-btn-disabled-border-color: var(--vault-red);
+}
+.btn-danger:hover { box-shadow: 0 6px 16px rgba(200, 84, 84, 0.30); }
+
+.btn-outline-danger {
+  --bs-btn-color: var(--vault-red-dark);
+  --bs-btn-border-color: var(--vault-red);
+  --bs-btn-hover-bg: var(--vault-red);
+  --bs-btn-hover-border-color: var(--vault-red);
+}
+
+.btn-warning {
+  --bs-btn-bg: var(--vault-gold);
+  --bs-btn-border-color: var(--vault-gold);
+  --bs-btn-hover-bg: var(--vault-gold-dark);
+  --bs-btn-hover-border-color: var(--vault-gold-dark);
+  --bs-btn-active-bg: var(--vault-gold-dark);
+  --bs-btn-active-border-color: var(--vault-gold-dark);
+  --bs-btn-disabled-bg: var(--vault-gold);
+  --bs-btn-disabled-border-color: var(--vault-gold);
+  --bs-btn-color: #241a02;
+  --bs-btn-hover-color: #241a02;
+  --bs-btn-active-color: #241a02;
+}
+.btn-warning:hover { box-shadow: var(--shadow-gold); }
+
+.btn-outline-secondary {
+  --bs-btn-color: var(--vault-ink-soft);
+  --bs-btn-border-color: var(--vault-border);
+  --bs-btn-hover-bg: var(--vault-slate);
+  --bs-btn-hover-border-color: var(--vault-slate);
+}
+
+.btn-outline-light {
+  --bs-btn-color: #eaf3f2;
+  --bs-btn-border-color: rgba(255, 255, 255, 0.28);
+  --bs-btn-hover-bg: rgba(255, 255, 255, 0.14);
+  --bs-btn-hover-border-color: rgba(255, 255, 255, 0.4);
+  --bs-btn-hover-color: #ffffff;
+}
+
+/* ==========================================================================
+   Cards / Surfaces
+   ========================================================================== */
+
+.card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--vault-border);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card.shadow-sm { box-shadow: var(--shadow-soft) !important; }
+.card.shadow-lg { box-shadow: var(--shadow-lift) !important; }
+
+/* KPI stat cards get a subtle lift on hover to invite attention */
+#stat-income, #stat-expense, #stat-balance, #stat-profit {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#stat-income:hover, #stat-expense:hover, #stat-balance:hover, #stat-profit:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-mid) !important;
+}
+
+.stat-icon-circle {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.stat-icon-circle.is-success { background: rgba(61, 148, 87, 0.12); color: var(--vault-green-dark); }
+.stat-icon-circle.is-danger  { background: rgba(200, 84, 84, 0.12); color: var(--vault-red-dark); }
+.stat-icon-circle.is-primary { background: rgba(61, 125, 112, 0.12); color: var(--vault-teal); }
+.stat-icon-circle.is-gold    { background: rgba(198, 154, 76, 0.14); color: var(--vault-gold-dark); }
+
+/* Wallet mini cards */
+.wallet-card-box {
+  background: var(--vault-surface);
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.wallet-card-box::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--vault-teal), var(--vault-gold));
+}
+
+.wallet-card-box:hover {
+  box-shadow: var(--shadow-mid);
+  transform: translateY(-2px);
+}
+
+/* Gold "physical card chip" styled badge */
+.yellow-card-badge {
+  background: linear-gradient(135deg, #f6d68a, var(--vault-gold));
+  color: #402c05;
+  border: 1px solid var(--vault-gold-dark);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* ==========================================================================
+   Badges
+   ========================================================================== */
+
+.badge { font-weight: 700; letter-spacing: 0; }
+
+.bg-primary   { background-color: var(--vault-teal) !important; }
+.bg-success   { background-color: var(--vault-green) !important; }
+.bg-danger    { background-color: var(--vault-red) !important; }
+.bg-warning   { background-color: var(--vault-gold) !important; color: #241a02 !important; }
+.bg-secondary { background-color: var(--vault-slate) !important; }
+.bg-info      { background-color: var(--vault-cyan) !important; }
+.bg-dark      { background-color: var(--vault-navy) !important; }
+
+.bg-success-subtle { background-color: rgba(61, 148, 87, 0.12) !important; }
+.bg-danger-subtle  { background-color: rgba(200, 84, 84, 0.12) !important; }
+.bg-info-subtle    { background-color: rgba(51, 135, 154, 0.12) !important; }
+.bg-warning-subtle { background-color: rgba(198, 154, 76, 0.14) !important; }
+
+.text-primary { color: var(--vault-teal) !important; }
+.text-success { color: var(--vault-green-dark) !important; }
+.text-danger  { color: var(--vault-red-dark) !important; }
+.text-warning { color: var(--vault-gold-dark) !important; }
+.text-info    { color: var(--vault-cyan) !important; }
+.text-secondary { color: var(--vault-slate) !important; }
+
+.border-primary { border-color: var(--vault-teal) !important; }
+.border-success { border-color: var(--vault-green) !important; }
+.border-danger  { border-color: var(--vault-red) !important; }
+.border-warning { border-color: var(--vault-gold) !important; }
+.border-info    { border-color: var(--vault-cyan) !important; }
+
+/* ==========================================================================
+   Progress Bars
+   ========================================================================== */
+
+.progress-sm {
+  height: 7px;
+  border-radius: 999px;
+  background-color: #e7ecec;
+  overflow: hidden;
+}
+
+.progress-bar {
+  transition: width 0.5s ease;
+}
+
+.progress-bar.bg-success { background: linear-gradient(90deg, #1f9d55, #33c072) !important; }
+.progress-bar.bg-warning { background: linear-gradient(90deg, #c8922a, #e6b756) !important; }
+.progress-bar.bg-danger  { background: linear-gradient(90deg, #d64545, #ef6b6b) !important; }
+.progress-bar.bg-primary { background: linear-gradient(90deg, #0f6f66, #17958a) !important; }
+
+/* ==========================================================================
+   Filter tabs (segmented control feel)
+   ========================================================================== */
+
+#filter-bar {
+  background: var(--vault-bg-soft);
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--vault-border);
+}
+
+#filter-bar .filter-btn {
+  border-radius: 999px !important;
+  border: none !important;
+  font-weight: 700;
+}
+
+#filter-bar .filter-btn.btn-outline-secondary {
+  background: transparent;
+  color: var(--vault-ink-soft);
+}
+
+#filter-bar .filter-btn.btn-outline-secondary:hover {
+  background: rgba(61, 125, 112, 0.08);
+  color: var(--vault-teal-dark);
+}
+
+#filter-bar .filter-btn.active,
+#filter-bar .filter-btn.btn-primary {
+  background: var(--vault-teal) !important;
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ==========================================================================
+   Wallets management modal — clean browsing list (add form lives elsewhere)
+   ========================================================================== */
+
+.wallet-manage-list {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-inline-end: 2px;
+}
+
+.wallet-manage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: var(--vault-bg-soft);
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.wallet-manage-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Table
+   ========================================================================== */
+
+.table-light {
+  --bs-table-bg: var(--vault-bg-soft);
+  color: var(--vault-ink-soft);
+  font-weight: 700;
+}
+
+.table-hover > tbody > tr:hover > * {
+  --bs-table-bg-state: rgba(61, 125, 112, 0.06);
+}
+
+#tx-count {
+  background-color: var(--vault-navy) !important;
+}
+
+/* Keep it a plain, normal table on phones: columns keep their natural width
+   and the container scrolls sideways, instead of every cell's text wrapping
+   onto several lines and the rows looking cramped/stacked. */
+.table-responsive table {
+  min-width: 780px;
+}
+
+.table-responsive table th,
+.table-responsive table td {
+  white-space: nowrap;
+}
+
+.table-responsive table td:nth-child(7) {
+  white-space: normal;
+  max-width: 220px;
+}
+
+/* ==========================================================================
+   Premium Offcanvas Sidebar
+   ========================================================================== */
+
+.offcanvas {
+  width: 320px !important;
+  font-family: 'Cairo', sans-serif;
+}
+
+.offcanvas-header.bg-dark {
+  background: var(--vault-navy) !important;
+  border-bottom: 1px solid rgba(198, 154, 76, 0.3) !important;
+}
+
+.sidebar-brand-icon {
+  width: 38px;
+  height: 38px;
+  background: rgba(198, 154, 76, 0.18);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-brand-icon i { color: var(--vault-gold-light) !important; }
+
+.sidebar-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-category {
+  text-transform: none;
+  color: var(--vault-slate) !important;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--vault-border);
+  background: var(--vault-bg-soft);
+  text-align: right;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-item:hover {
+  background: rgba(61, 125, 112, 0.08);
+  border-color: rgba(61, 125, 112, 0.35);
+  transform: translateX(-3px);
+}
+
+.sidebar-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.sidebar-item-text div {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.sidebar-item-text small {
+  font-size: 11px;
+}
+
+.sidebar-notebook-item {
+  position: relative;
+  border-color: rgba(198, 154, 76, 0.45);
+  background: linear-gradient(135deg, rgba(198, 154, 76, 0.11), var(--vault-bg-soft));
+}
+
+.sidebar-notebook-item:hover {
+  border-color: var(--vault-gold);
+  background: rgba(198, 154, 76, 0.16);
+}
+
+.sidebar-notebook-count {
+  min-width: 24px;
+  padding: 2px 7px;
+  color: #fff;
+  background: var(--vault-navy);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.wallets-grid-collapsed {
+  display: none !important;
+}
+
+.wallets-section-header {
+  gap: 10px;
+}
+
+.wallet-line-inactive {
+  min-height: 100%;
+  background: linear-gradient(135deg, #fff, var(--vault-bg-soft));
+  border-inline-start: 4px solid var(--vault-slate);
+}
+
+.wallet-card-limits {
+  padding-top: 10px;
+  border-top: 1px solid var(--vault-border);
+}
+
+.yellow-card-limits-list {
+  display: flex;
+  max-height: 420px;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.yellow-card-limit-row {
+  padding: 10px 12px;
+  background: var(--vault-bg-soft);
+  border: 1px solid var(--vault-border);
+  border-radius: 8px;
+}
+
+.wallet-presence-toggle .btn {
+  min-height: 42px;
+  font-weight: 800;
+}
+
+.wallet-presence-fields {
+  padding: 10px;
+  background: var(--vault-bg-soft);
+  border-color: var(--vault-border) !important;
+  border-radius: 8px;
+}
+
+.transaction-wallet-picker {
+  display: grid;
+  gap: 8px;
+  max-height: 230px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.transaction-wallet-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 58px;
+  padding: 9px 10px;
+  color: var(--vault-ink);
+  text-align: right;
+  background: var(--vault-bg-soft);
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.transaction-wallet-option:hover,
+.transaction-wallet-option.is-selected {
+  background: rgba(61, 125, 112, 0.09);
+  border-color: var(--vault-teal);
+}
+
+.transaction-wallet-option.is-selected {
+  box-shadow: 0 0 0 2px rgba(61, 125, 112, 0.12);
+}
+
+.transaction-wallet-option__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  color: var(--vault-teal);
+  background: rgba(61, 125, 112, 0.12);
+  border-radius: 9px;
+  font-size: 18px;
+}
+
+.transaction-wallet-option__details {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transaction-wallet-option__details strong,
+.transaction-wallet-option__details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-wallet-option__details strong {
+  font-size: 12px;
+}
+
+.transaction-wallet-option__details small {
+  color: var(--vault-ink-soft);
+  font-size: 10px;
+}
+
+.transaction-wallet-option__check {
+  visibility: hidden;
+  color: var(--vault-teal);
+  font-size: 18px;
+}
+
+.transaction-wallet-option.is-selected .transaction-wallet-option__check {
+  visibility: visible;
+}
+
+.profit-breakdown {
+  overflow: hidden;
+  background: var(--vault-bg-soft);
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-sm);
+  direction: rtl;
+}
+
+.profit-breakdown-fees {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profit-breakdown-item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  padding: 10px 8px 9px;
+  align-items: center;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+}
+
+.profit-breakdown-item + .profit-breakdown-item::before {
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 0;
+  width: 1px;
+  background: var(--vault-border);
+  content: '';
+}
+
+.profit-toggle {
+  display: flex;
+  width: 100%;
+  padding: 7px 10px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--vault-teal-dark);
+  background: #fff;
+  border: 0;
+  border-top: 1px solid var(--vault-border);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.profit-toggle:hover {
+  color: var(--vault-teal-darker);
+  background: rgba(61, 125, 112, 0.06);
+}
+
+.profit-toggle i {
+  font-size: 18px;
+}
+
+.profit-net-panel {
+  display: flex;
+  padding: 9px 12px;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--vault-gold-dark);
+  background: rgba(198, 154, 76, 0.14);
+  border-top: 1px solid rgba(198, 154, 76, 0.28);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profit-net-panel strong {
+  direction: ltr;
+  font-size: 18px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.profit-breakdown-label {
+  overflow: hidden;
+  color: var(--vault-ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profit-breakdown-item small {
+  color: var(--vault-slate);
+  font-size: 9px;
+}
+
+.profit-breakdown-item strong {
+  direction: ltr;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.profit-breakdown-item.is-income strong { color: var(--vault-green-dark); }
+.profit-breakdown-item.is-cost strong { color: var(--vault-red-dark); }
+
+.profit-breakdown-item.is-profit {
+  background: rgba(198, 154, 76, 0.12);
+}
+
+.profit-breakdown-item.is-profit .profit-breakdown-label,
+.profit-breakdown-item.is-profit strong {
+  color: var(--vault-gold-dark);
+}
+
+@media (max-width: 380px) {
+  .profit-breakdown-item {
+    padding-inline: 4px;
+  }
+
+  .profit-breakdown-label {
+    font-size: 9px;
+  }
+
+  .profit-breakdown-item strong {
+    font-size: 14px;
+  }
+
+  .profit-net-panel strong { font-size: 16px; }
+}
+
+.notebook-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notebook-toolbar,
+.notebook-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notebook-toolbar {
+  justify-content: space-between;
+}
+
+.notebook-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vault-ink-soft);
+  font-size: 12px;
+}
+
+.notebook-summary > i {
+  color: var(--vault-gold-dark);
+  font-size: 20px;
+}
+
+.notebook-search-wrap {
+  padding: 5px 10px;
+  background: var(--vault-bg-soft);
+  border: 1px solid var(--vault-border);
+  border-radius: var(--radius-sm);
+}
+
+.notebook-search-wrap > i {
+  color: var(--vault-teal);
+  font-size: 18px;
+}
+
+.notebook-search-wrap .form-control {
+  padding-inline: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.notebook-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 390px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.notebook-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  background: var(--vault-bg-soft);
+  border: 1px solid var(--vault-border);
+  border-inline-start: 4px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+.notebook-note.is-pinned {
+  background: rgba(198, 154, 76, 0.09);
+  border-inline-start-color: var(--vault-gold);
+}
+
+.notebook-note-main {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.notebook-note-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notebook-note-heading h6 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notebook-note-heading i {
+  color: var(--vault-gold-dark);
+  font-size: 15px;
+}
+
+.notebook-note p {
+  display: -webkit-box;
+  margin: 5px 0;
+  overflow: hidden;
+  color: var(--vault-ink-soft);
+  font-size: 11px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+}
+
+.notebook-note time {
+  color: var(--vault-slate);
+  font-size: 10px;
+}
+
+.notebook-note-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notebook-note-actions .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.notebook-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 30px 16px;
+  color: var(--vault-ink-soft);
+  flex-direction: column;
+  text-align: center;
+}
+
+.notebook-empty > i {
+  color: var(--vault-gold);
+  font-size: 42px;
+}
+
+.notebook-empty strong {
+  color: var(--vault-ink);
+  font-size: 14px;
+}
+
+.notebook-empty span,
+.notebook-editor-hint {
+  font-size: 11px;
+}
+
+.notebook-editor textarea {
+  min-height: 170px;
+  resize: vertical;
+}
+
+.notebook-editor-hint {
+  margin-top: 8px;
+  color: var(--vault-slate);
+}
+
+.sw-update-popup {
+  position: fixed;
+  inset-inline: 16px;
+  bottom: 16px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
+  margin-inline: auto;
+  padding: 12px 14px;
+  background: var(--vault-navy);
+  color: #fff;
+  border: 1px solid rgba(198, 154, 76, 0.55);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lift);
+}
+
+.sw-update-popup__icon {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(198, 154, 76, 0.18);
+  color: var(--vault-gold-light);
+  font-size: 20px;
+}
+
+.sw-update-popup__content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sw-update-popup__content strong {
+  font-size: 13px;
+}
+
+.sw-update-popup__content span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+}
+
+@media (max-width: 575.98px) {
+  .wallets-section-header {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+  }
+
+  .wallets-section-header h6 {
+    flex: 1 1 100%;
+  }
+
+  .wallets-section-header > div {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .sw-update-popup {
+    inset-inline: 10px;
+    bottom: calc(var(--bottom-bar-height) + 10px + env(safe-area-inset-bottom, 0px));
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .sw-update-popup__content {
+    flex-basis: calc(100% - 54px);
+  }
+
+  .sw-update-popup .btn {
+    width: 100%;
+    margin-inline-start: 50px;
+  }
+}
+
+/* ==========================================================================
+   SweetAlert Custom Administrative RTL Styling
+   ========================================================================== */
+
+.swal2-popup {
+  font-family: 'Cairo', sans-serif !important;
+  border-radius: var(--radius-lg) !important;
+  direction: rtl !important;
+  text-align: right !important;
+  box-shadow: var(--shadow-lift) !important;
+}
+
+.swal2-title {
+  font-size: 1.2rem !important;
+  font-weight: 800 !important;
+  color: var(--vault-ink) !important;
+}
+
+.swal2-html-container {
+  text-align: right !important;
+}
+
+.swal2-actions button {
+  font-family: 'Cairo', sans-serif !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.swal2-icon.swal2-success { border-color: var(--vault-green) !important; color: var(--vault-green) !important; }
+.swal2-icon.swal2-success [class^='swal2-success-line'] { background-color: var(--vault-green) !important; }
+.swal2-icon.swal2-error { border-color: var(--vault-red) !important; color: var(--vault-red) !important; }
+.swal2-icon.swal2-warning { border-color: var(--vault-gold) !important; color: var(--vault-gold-dark) !important; }
+.swal2-icon.swal2-info { border-color: var(--vault-teal) !important; color: var(--vault-teal) !important; }
+
+.swal2-styled:focus {
+  box-shadow: 0 0 0 3px rgba(61, 125, 112, 0.3) !important;
+}
+
+/* ==========================================================================
+   Mobile daily-use bottom action bar
+   On phones, pin the "add income / add expense" buttons within thumb reach
+   at the bottom, like a notebook app, instead of adding to page length.
+   ========================================================================== */
+
+@media (max-width: 575.98px) {
+  body { padding-bottom: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px)); }
+
+  #quick-actions-bar {
+    position: fixed;
+    bottom: 0;
+    inset-inline: 0;
+    left: 0;
+    right: 0;
+    margin: 0 !important;
+    background: var(--vault-surface);
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 18px rgba(42, 38, 34, 0.10);
+    z-index: 1030;
+  }
+
+  #quick-actions-bar .btn {
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* ==========================================================================
+   Reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
