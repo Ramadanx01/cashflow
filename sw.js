@@ -1,5 +1,5 @@
 /* Local-first app shell cache. User data is stored only in IndexedDB. */
-const CACHE_NAME = 'cashflow-app-v9';
+const CACHE_NAME = 'cashflow-app-v10';
 const CACHE_PREFIX = 'cashflow-app-';
 const APP_SHELL = [
   './',

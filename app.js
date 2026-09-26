@@ -2015,10 +2015,12 @@ function clearAllData() {
 }
 
 async function removeAppFromThisDevice() {
+  const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const deviceLabel = isMobileDevice ? 'هذا الجهاز' : 'هذا الكمبيوتر وفي ملف المتصفح الحالي';
   const confirmation = await Swal.fire({
     icon: 'warning',
-    title: 'حذف بيانات التطبيق من هذا الجهاز؟',
-    html: '<div class="text-start small"><p>سيحذف هذا الإجراء نهائيًا:</p><ul><li>كل المحافظ والمعاملات والملاحظات والإعدادات المحلية.</li><li>بيانات الربط المحلية وملفات التطبيق المحفوظة للعمل دون إنترنت.</li><li>تسجيل Service Worker لهذا التطبيق على هذا العنوان.</li></ul><p class="fw-bold text-danger">لن يحذف ملفات النسخ الاحتياطية الموجودة في Google Drive، ولا يستطيع الموقع إزالة أيقونة التطبيق من قائمة تطبيقات الجهاز.</p><p>للمتابعة اكتب <strong>حذف التطبيق</strong> في المربع.</p></div>',
+    title: `حذف بيانات التطبيق من ${deviceLabel}؟`,
+    html: `<div class="text-start small"><p>سيحذف هذا الإجراء من ${deviceLabel}:</p><ul><li>كل المحافظ والمعاملات والملاحظات والإعدادات المحلية.</li><li>بيانات الربط المحلية وملفات التطبيق المحفوظة للعمل دون إنترنت.</li><li>تسجيل Service Worker الخاص بالتطبيق.</li></ul><p class="fw-bold text-danger">هذا يمسح بيانات Cashflow من المتصفح الحالي فقط. لن يحذف نسخ Google Drive، ولا يستطيع الموقع إزالة أيقونة التطبيق المثبّتة بنفسه.</p><p>للمتابعة اكتب <strong>حذف التطبيق</strong> في المربع.</p></div>`,
     input: 'text',
     inputPlaceholder: 'حذف التطبيق',
     showCancelButton: true,
@@ -2054,10 +2056,13 @@ async function removeAppFromThisDevice() {
     }
 
     storageReady = false;
+    const uninstallInstructions = isMobileDevice
+      ? '<ol><li>لإزالة أيقونة التطبيق: اضغط مطولًا على أيقونة Cashflow ثم اختر «إلغاء التثبيت» أو «إزالة التطبيق».</li><li>إذا بقيت بيانات للموقع: افتح إعدادات المتصفح ثم إعدادات المواقع/بيانات المواقع، وابحث عن عنوان Cashflow واختر «مسح البيانات وإعادة الضبط».</li></ol>'
+      : '<ol><li>لإزالة التطبيق من الكمبيوتر: افتح نافذة Cashflow، ثم قائمة التطبيق <strong>⋮</strong> واختر <strong>إلغاء تثبيت Cashflow Manager</strong>. في Chrome أو Edge قد تجد الخيار أيضًا في قائمة التطبيقات المثبّتة.</li><li>لمسح بيانات الموقع من المتصفح: افتح عنوان Cashflow في Chrome/Edge، اضغط رمز إعدادات الموقع بجانب العنوان، ثم «إعدادات الموقع» و«حذف البيانات».</li></ol>';
     Swal.fire({
       icon: 'success',
-      title: 'تم حذف بيانات التطبيق المحلية',
-      html: '<div class="text-start small"><p>تم حذف قاعدة البيانات والكاش وإلغاء عامل الخدمة.</p><p>لإزالة أيقونة التطبيق نهائيًا، احذف التطبيق من قائمة تطبيقات الجهاز أو من قائمة المتصفح: <strong>إلغاء تثبيت التطبيق</strong>.</p><p>في Chrome/Edge على الكمبيوتر: قائمة التطبيق أو المتصفح ثم «إلغاء تثبيت». وعلى Android: اضغط مطولًا على الأيقونة ثم «إلغاء التثبيت».</p></div>',
+      title: isMobileDevice ? 'تم حذف بيانات Cashflow من هذا الجهاز' : 'تم حذف بيانات Cashflow من هذا الكمبيوتر',
+      html: `<div class="text-start small"><p>تم حذف قاعدة IndexedDB التي تحتوي بياناتك، وكاش ملفات Offline، ومفاتيح التطبيق المحلية، وإلغاء تسجيل Service Worker من ملف المتصفح الحالي.</p><p class="fw-bold">لإزالة التطبيق وأي بيانات متبقية من الجهاز:</p>${uninstallInstructions}<p class="mb-0">نسخ Google Drive لا تتأثر بهذا الحذف.</p></div>`,
       confirmButtonText: 'حسنًا'
     });
   } catch (error) {
