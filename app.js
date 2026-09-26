@@ -30,11 +30,40 @@ let appState = {
   currentFilter: 'all'
 };
 let walletUpgradePromptTimer = null;
+let storageWriteFailureShown = false;
+let storageReady = false;
+let driveToolsReady = false;
+let linkedGoogleAccount = null;
+let linkedGoogleFolder = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadFromLocalStorage();
+document.addEventListener('DOMContentLoaded', async () => {
+  document.body.inert = true;
+  try {
+    const savedData = await CashflowStorage.initialize();
+    appState.wallets = savedData.wallets;
+    appState.transactions = savedData.transactions;
+    appState.notes = savedData.notes;
+    appState.settings = { ...DEFAULT_SETTINGS, ...savedData.settings };
+    storageReady = true;
+  } catch (error) {
+    console.error('IndexedDB initialization or legacy migration failed:', error);
+    storageWriteFailureShown = true;
+    loadFromLocalStorage();
+    Swal.fire({
+      icon: 'error',
+      title: 'تعذر فتح التخزين المحلي',
+      text: 'لم يتم حذف بياناتك القديمة. تحقق من مساحة التخزين أو افتح التطبيق في متصفح يدعم IndexedDB قبل إجراء تعديلات.'
+    });
+  }
+  appState.wallets.forEach(wallet => {
+    if (wallet.hasWallet === undefined) wallet.hasWallet = true;
+    if (!wallet.limitTier) wallet.limitTier = 'standard';
+    if (!wallet.activationDate && wallet.hasWallet) wallet.activationDate = wallet.createdAt || null;
+  });
+  recalculateWalletBalances();
   restoreWalletsSectionState();
   renderAll();
+  document.body.inert = false;
 });
 
 // --- LocalStorage Operations ---
@@ -66,10 +95,20 @@ function loadFromLocalStorage() {
 }
 
 function saveToLocalStorage() {
-  localStorage.setItem('axis_wallets', JSON.stringify(appState.wallets));
-  localStorage.setItem('axis_transactions', JSON.stringify(appState.transactions));
-  localStorage.setItem('axis_notes', JSON.stringify(appState.notes));
-  localStorage.setItem('axis_settings', JSON.stringify(appState.settings));
+  if (!storageReady) return Promise.resolve();
+  const snapshot = {
+    wallets: appState.wallets,
+    transactions: appState.transactions,
+    notes: appState.notes,
+    settings: appState.settings
+  };
+  return CashflowStorage.replaceSnapshot(snapshot).catch(error => {
+    console.error('Unable to persist application data:', error);
+    if (!storageWriteFailureShown) {
+      storageWriteFailureShown = true;
+      Swal.fire({ icon: 'error', title: 'تعذر حفظ البيانات', text: 'لم يكتمل الحفظ في قاعدة البيانات المحلية. لا تغلق التطبيق قبل المحاولة مجددًا.' });
+    }
+  });
 }
 
 // Recalculate Wallet Balance: Initial Balance + Incomes - Expenses
@@ -1557,11 +1596,182 @@ function openSettingsModal() {
             <input type="file" accept=".json" style="display:none;" onchange="importBackup(event)">
           </label>
         </div>
+        <hr>
+        <h6 class="fw-bold">Google Drive</h6>
+        <div class="d-flex gap-2 mb-2">
+          <button class="btn btn-sm btn-outline-primary w-50" id="drive-connect-btn" onclick="linkGoogleDriveAccount()" disabled><i class="uil uil-link me-1"></i> ربط حساب Google</button>
+          <button class="btn btn-sm btn-outline-secondary w-50" id="drive-disconnect-btn" onclick="unlinkGoogleDriveAccount()" disabled><i class="uil uil-unlink me-1"></i> إلغاء الربط</button>
+        </div>
+        <div class="d-flex gap-2 mb-2">
+          <button class="btn btn-sm btn-outline-primary w-50" id="drive-backup-export-btn" onclick="exportBackupToDrive()" disabled><i class="uil uil-google-drive-alt me-1"></i> حفظ نسخة على Drive</button>
+          <button class="btn btn-sm btn-outline-success w-50" id="drive-backup-restore-btn" onclick="restoreBackupFromDrive()" disabled><i class="uil uil-upload-alt me-1"></i> استعادة من Drive</button>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary w-100 mb-2" id="drive-folder-btn" onclick="changeGoogleDriveFolder()" disabled><i class="uil uil-folder-open me-1"></i> تغيير مجلد النسخ</button>
+        <small class="text-muted d-block" id="drive-backup-status" aria-live="polite"></small>
       </div>
     `,
     showConfirmButton: false,
-    showCloseButton: true
+    showCloseButton: true,
+    didOpen: preloadGoogleDriveTools
   });
+}
+
+async function preloadGoogleDriveTools() {
+  const status = document.getElementById('drive-backup-status');
+  driveToolsReady = false;
+  updateGoogleDriveControls();
+  if (!CashflowDriveBackup.isConfigured()) {
+    if (status) status.textContent = 'يلزم إعداد Google OAuth وDrive API أولاً.';
+    return;
+  }
+  if (status) status.textContent = 'جاري تجهيز الاتصال الآمن بـGoogle...';
+  try {
+    await CashflowDriveBackup.preload();
+    [linkedGoogleAccount, linkedGoogleFolder] = await Promise.all([
+      CashflowDriveBackup.getLinkedAccount(),
+      CashflowDriveBackup.getBackupFolder()
+    ]);
+    driveToolsReady = true;
+    updateGoogleDriveControls();
+  } catch (error) {
+    console.warn('Google Drive tools could not be prepared:', error);
+    if (status?.isConnected) status.textContent = 'تعذر تحميل Google Drive. تحقق من الاتصال بالإنترنت.';
+  }
+}
+
+function updateGoogleDriveControls() {
+  const configured = CashflowDriveBackup.isConfigured() && driveToolsReady;
+  const accountLinked = Boolean(linkedGoogleAccount?.email);
+  const setDisabled = (id, disabled) => {
+    const button = document.getElementById(id);
+    if (button) button.disabled = disabled;
+  };
+  setDisabled('drive-connect-btn', !configured);
+  setDisabled('drive-disconnect-btn', !configured || !accountLinked);
+  setDisabled('drive-backup-export-btn', !configured || !accountLinked);
+  setDisabled('drive-backup-restore-btn', !configured || !accountLinked);
+  setDisabled('drive-folder-btn', !configured || !accountLinked);
+
+  const status = document.getElementById('drive-backup-status');
+  if (!status || !configured) return;
+  status.textContent = accountLinked
+    ? `مرتبط بالحساب ${linkedGoogleAccount.email}${linkedGoogleFolder ? ` · مجلد النسخ: ${linkedGoogleFolder.name}` : ' · اختر مجلد النسخ عند أول عملية حفظ'}`
+    : 'اربط حساب Google مرة واحدة للبدء.';
+}
+
+async function linkGoogleDriveAccount() {
+  if (!driveToolsReady) return;
+  try {
+    const linkPromise = CashflowDriveBackup.linkAccount();
+    Swal.fire({ title: 'اختر حساب Google ووافق على الصلاحية...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    linkedGoogleAccount = await linkPromise;
+    linkedGoogleFolder = null;
+    Swal.fire({ icon: 'success', title: 'تم ربط حساب Google', text: linkedGoogleAccount.email });
+  } catch (error) {
+    console.error('Google account linking failed:', error);
+    Swal.fire({ icon: 'error', title: 'تعذر ربط حساب Google', text: error.message || 'تحقق من إعداد OAuth ثم حاول مرة أخرى.' });
+  }
+}
+
+async function unlinkGoogleDriveAccount() {
+  if (!linkedGoogleAccount) return;
+  const confirmation = await Swal.fire({
+    icon: 'warning',
+    title: 'إلغاء ربط الحساب من هذا التطبيق؟',
+    text: 'لن يحذف هذا نسخ Drive السابقة، لكنه يمسح الحساب والمجلد المحفوظين على هذا الجهاز.',
+    showCancelButton: true,
+    confirmButtonText: 'إلغاء الربط',
+    cancelButtonText: 'إبقاء الحساب'
+  });
+  if (!confirmation.isConfirmed) return;
+  await CashflowDriveBackup.unlinkAccount();
+  linkedGoogleAccount = null;
+  linkedGoogleFolder = null;
+  updateGoogleDriveControls();
+  Swal.fire({ icon: 'success', title: 'تم إلغاء الربط من هذا الجهاز' });
+}
+
+async function changeGoogleDriveFolder() {
+  if (!linkedGoogleAccount || !driveToolsReady) return;
+  try {
+    const tokenPromise = CashflowDriveBackup.requestAccessToken(linkedGoogleAccount.email);
+    Swal.fire({ title: 'جارٍ الاتصال بحساب Google المرتبط...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const accessToken = await tokenPromise;
+    Swal.close();
+    const folder = await CashflowDriveBackup.pickFolder(accessToken);
+    if (!folder) return;
+    linkedGoogleFolder = await CashflowDriveBackup.setBackupFolder(folder);
+    updateGoogleDriveControls();
+    Swal.fire({ icon: 'success', title: 'تم حفظ مجلد النسخ', text: linkedGoogleFolder.name });
+  } catch (error) {
+    console.error('Google Drive folder selection failed:', error);
+    Swal.fire({ icon: 'error', title: 'تعذر اختيار مجلد Drive', text: error.message || 'تحقق من صلاحية الحساب والاتصال بالإنترنت.' });
+  }
+}
+
+async function exportBackupToDrive() {
+  if (!CashflowDriveBackup.isConfigured()) {
+    Swal.fire({ icon: 'info', title: 'إعداد Google Drive مطلوب', text: 'أضف بيانات Google OAuth وDrive API في ملف drive-backup.js ثم انشر التطبيق على HTTPS.' });
+    return;
+  }
+  if (!linkedGoogleAccount) {
+    Swal.fire({ icon: 'info', title: 'اربط حساب Google أولاً', text: 'استخدم زر «ربط حساب Google» مرة واحدة قبل حفظ النسخة.' });
+    return;
+  }
+
+  try {
+    const tokenPromise = CashflowDriveBackup.requestAccessToken(linkedGoogleAccount.email);
+    Swal.fire({ title: 'جارٍ الاتصال بحساب Google...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const accessToken = await tokenPromise;
+    Swal.close();
+    if (!linkedGoogleFolder) {
+      const selectedFolder = await CashflowDriveBackup.pickFolder(accessToken);
+      if (!selectedFolder) return;
+      linkedGoogleFolder = await CashflowDriveBackup.setBackupFolder(selectedFolder);
+    }
+
+    Swal.fire({ title: 'جارٍ رفع النسخة الاحتياطية...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    await saveToLocalStorage();
+    const snapshot = await CashflowStorage.readSnapshot();
+    const backup = { ...appState, ...snapshot, currentFilter: appState.currentFilter };
+    const result = await CashflowDriveBackup.uploadBackup(accessToken, linkedGoogleFolder.id, backup);
+    Swal.fire({ icon: 'success', title: 'تم حفظ النسخة على Google Drive', text: result.name || 'تم إنشاء ملف النسخة الاحتياطية.' });
+  } catch (error) {
+    console.error('Google Drive backup failed:', error);
+    Swal.fire({ icon: 'error', title: 'تعذر حفظ النسخة على Drive', text: error.message || 'تحقق من إعداد Google والاتصال بالإنترنت ثم حاول مرة أخرى.' });
+  }
+}
+
+async function restoreBackupFromDrive() {
+  if (!CashflowDriveBackup.isConfigured()) {
+    Swal.fire({ icon: 'info', title: 'إعداد Google Drive مطلوب', text: 'أضف بيانات Google OAuth وDrive API في ملف drive-backup.js ثم انشر التطبيق على HTTPS.' });
+    return;
+  }
+  if (!storageReady) {
+    Swal.fire({ icon: 'error', title: 'التخزين غير جاهز', text: 'لم تكتمل تهيئة قاعدة البيانات، لذلك لم يتم استيراد النسخة الاحتياطية.' });
+    return;
+  }
+  if (!linkedGoogleAccount) {
+    Swal.fire({ icon: 'info', title: 'اربط حساب Google أولاً', text: 'استخدم زر «ربط حساب Google» مرة واحدة قبل استعادة نسخة.' });
+    return;
+  }
+
+  try {
+    const tokenPromise = CashflowDriveBackup.requestAccessToken(linkedGoogleAccount.email);
+    Swal.fire({ title: 'جارٍ الاتصال بحساب Google...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const accessToken = await tokenPromise;
+    Swal.close();
+    const file = await CashflowDriveBackup.pickBackupFile(accessToken);
+    if (!file) return;
+
+    Swal.fire({ title: 'جارٍ تحميل النسخة الاحتياطية...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const backup = await CashflowDriveBackup.downloadBackup(accessToken, file.id);
+    Swal.close();
+    await restoreBackupData(backup, file.name || 'Google Drive');
+  } catch (error) {
+    console.error('Google Drive restore failed:', error);
+    Swal.fire({ icon: 'error', title: 'تعذر استعادة النسخة من Drive', text: error.message || 'تحقق من إعداد Google والاتصال بالإنترنت ثم حاول مرة أخرى.' });
+  }
 }
 
 function saveRatesFromSwal() {
@@ -1605,8 +1815,16 @@ function saveRatesFromSwal() {
   });
 }
 
-function exportBackup() {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+async function exportBackup() {
+  await saveToLocalStorage();
+  const backup = {
+    ...appState,
+    wallets: appState.wallets,
+    transactions: appState.transactions,
+    notes: appState.notes,
+    settings: appState.settings
+  };
+  const dataStr = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
   const anchor = document.createElement('a');
   const dateStr = new Date().toISOString().slice(0, 10);
   anchor.setAttribute("href", dataStr);
@@ -1614,37 +1832,76 @@ function exportBackup() {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(dataStr), 1000);
 }
 
 function importBackup(event) {
   const file = event.target.files[0];
   if (!file) return;
+  if (!storageReady) {
+    Swal.fire({ icon: 'error', title: 'التخزين غير جاهز', text: 'لم تكتمل تهيئة قاعدة البيانات، لذلك لم يتم استيراد النسخة الاحتياطية.' });
+    event.target.value = '';
+    return;
+  }
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      if (data.wallets && data.transactions) {
-        appState.wallets = data.wallets.map(wallet => ({
-          ...wallet,
-          hasWallet: wallet.hasWallet === undefined ? true : wallet.hasWallet,
-          limitTier: wallet.limitTier || 'standard',
-          activationDate: wallet.activationDate || wallet.createdAt || null
-        }));
-        appState.transactions = data.transactions;
-        appState.notes = Array.isArray(data.notes) ? data.notes : [];
-        appState.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
-        saveToLocalStorage();
-        renderAll();
-        Swal.fire({ icon: 'success', title: 'تمت استعادة البيانات بنجاح' });
-      } else {
-        Swal.fire({ icon: 'error', title: 'خطأ', text: 'تنسيق الملف غير صالح.' });
-      }
+      await restoreBackupData(data, file.name);
     } catch (err) {
       Swal.fire({ icon: 'error', title: 'خطأ', text: 'حدث خطأ أثناء قراءة ملف الاستعادة.' });
+    } finally {
+      event.target.value = '';
     }
   };
   reader.readAsText(file);
+}
+
+async function restoreBackupData(data, sourceName = 'النسخة الاحتياطية') {
+  const validCollection = value => Array.isArray(value) && value.every(item => item && typeof item === 'object' && !Array.isArray(item));
+  const validSettings = data && (data.settings === undefined || (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)));
+  if (!data || !validCollection(data.wallets) || !validCollection(data.transactions) ||
+      (data.notes !== undefined && !validCollection(data.notes)) || !validSettings) {
+    Swal.fire({ icon: 'error', title: 'ملف غير صالح', text: 'لا تتوافق هذه النسخة مع صيغة بيانات التطبيق. لم يتم تغيير بياناتك.' });
+    return false;
+  }
+
+  const wallets = data.wallets.map(wallet => ({
+    ...wallet,
+    hasWallet: wallet.hasWallet === undefined ? true : wallet.hasWallet,
+    limitTier: wallet.limitTier || 'standard',
+    activationDate: wallet.activationDate || wallet.createdAt || null
+  }));
+  const transactions = data.transactions;
+  const notes = Array.isArray(data.notes) ? data.notes : [];
+  const settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+  const confirmation = await Swal.fire({
+    icon: 'warning',
+    title: 'استبدال البيانات الحالية؟',
+    text: `سيتم استبدال بيانات التطبيق الحالية بمحتوى النسخة: ${sourceName}.`,
+    showCancelButton: true,
+    confirmButtonText: 'استعادة النسخة',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc3545'
+  });
+  if (!confirmation.isConfirmed) return false;
+
+  try {
+    await CashflowStorage.replaceSnapshot({ wallets, transactions, notes, settings });
+    appState.wallets = wallets;
+    appState.transactions = transactions;
+    appState.notes = notes;
+    appState.settings = settings;
+    recalculateWalletBalances();
+    renderAll();
+    Swal.fire({ icon: 'success', title: 'تمت استعادة البيانات بنجاح' });
+    return true;
+  } catch (error) {
+    console.error('Backup restore failed:', error);
+    Swal.fire({ icon: 'error', title: 'تعذرت الاستعادة', text: 'لم يكتمل حفظ النسخة المستعادة. بقيت البيانات المحلية كما هي.' });
+    return false;
+  }
 }
 
 function clearAllData() {

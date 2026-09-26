@@ -1,0 +1,21 @@
+Locally bundled third-party assets
+
+Bootstrap 5.3.3
+License: MIT
+License text: licenses/bootstrap-MIT.txt
+Source: https://github.com/twbs/bootstrap
+
+SweetAlert2 11.26.25
+License: MIT
+License text: licenses/sweetalert2-MIT.txt
+Source: https://github.com/sweetalert2/sweetalert2
+
+Unicons 4.0.8 (line and solid icon fonts)
+License: IconScout Simple License
+License text: licenses/unicons-IconScout.txt
+Source: https://github.com/Iconscout/unicons
+
+Cairo font (weights 400, 600, 700, and 800)
+License: SIL Open Font License 1.1
+License text: licenses/cairo-OFL.txt
+Source: https://github.com/google/fonts/tree/main/ofl/cairo
