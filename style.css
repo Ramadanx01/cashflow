@@ -1095,6 +1095,141 @@ input:focus-visible,
   box-shadow: 0 0 0 3px rgba(61, 125, 112, 0.3) !important;
 }
 
+.wallet-balance-summary-popup {
+  width: min(560px, calc(100vw - 28px)) !important;
+  padding: 1.25rem !important;
+}
+
+.wallet-balance-summary-popup .swal2-title {
+  margin-bottom: 0.4rem !important;
+}
+
+.wallet-balance-summary-popup .swal2-html-container {
+  margin: 0.75rem 0 0 !important;
+}
+
+.wallet-balance-list {
+  display: grid;
+  gap: 0.65rem;
+  max-height: min(52vh, 390px);
+  overflow-y: auto;
+  padding: 0.15rem 0.2rem 0.15rem 0.05rem;
+  text-align: right;
+  overscroll-behavior: contain;
+}
+
+.wallet-balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--vault-border);
+  border-inline-start: 3px solid var(--vault-teal);
+  border-radius: var(--radius-sm);
+  background: var(--vault-surface);
+  box-shadow: 0 2px 7px rgba(34, 50, 58, 0.045);
+}
+
+.wallet-balance-row__details {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.wallet-balance-row__name {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--vault-ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.wallet-balance-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.35rem;
+  color: var(--vault-ink-soft);
+  font-size: 0.76rem;
+}
+
+.wallet-balance-row__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.wallet-balance-row__current {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  max-width: 48%;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: #eef5f2;
+  color: var(--vault-teal-dark);
+  text-align: left;
+}
+
+.wallet-balance-row__current.is-zero {
+  background: #f1f2f2;
+  color: var(--vault-slate);
+}
+
+.wallet-balance-row__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.wallet-balance-row__current strong {
+  overflow-wrap: anywhere;
+  font-size: 0.91rem;
+  font-weight: 800;
+}
+
+.wallet-balance-empty {
+  display: flex;
+  min-height: 110px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--vault-ink-soft);
+}
+
+.wallet-balance-empty i {
+  color: var(--vault-teal);
+  font-size: 1.6rem;
+}
+
+@media (max-width: 575.98px) {
+  .wallet-balance-summary-popup {
+    padding: 1rem 0.75rem !important;
+  }
+
+  .wallet-balance-row {
+    gap: 0.55rem;
+    padding: 0.7rem;
+  }
+
+  .wallet-balance-row__meta {
+    gap: 0.15rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .wallet-balance-row__current {
+    max-width: 46%;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .wallet-balance-row__current strong {
+    font-size: 0.82rem;
+  }
+}
+
 /* ==========================================================================
    Mobile daily-use bottom action bar
    On phones, pin the "add income / add expense" buttons within thumb reach

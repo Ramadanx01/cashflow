@@ -1,5 +1,5 @@
 /* Local-first app shell cache. User data is stored only in IndexedDB. */
-const CACHE_NAME = 'cashflow-app-v10';
+const CACHE_NAME = 'cashflow-app-v12';
 const CACHE_PREFIX = 'cashflow-app-';
 const APP_SHELL = [
   './',
@@ -7,7 +7,6 @@ const APP_SHELL = [
   './style.css',
   './app.js',
   './storage.js',
-  './drive-backup.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
@@ -27,7 +26,7 @@ const APP_SHELL = [
   ...Array.from({ length: 4 }, (_, index) => `./assets/vendor/fonts/solid/unicons-${index}.woff2`)
 ];
 const APP_ASSET_PATHS = new Set(APP_SHELL.map(asset => new URL(asset, self.location.href).pathname));
-const TEXT_ASSETS_TO_CHECK = ['./index.html', './style.css', './app.js', './storage.js', './drive-backup.js', './manifest.json'];
+const TEXT_ASSETS_TO_CHECK = ['./index.html', './style.css', './app.js', './storage.js', './manifest.json'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));

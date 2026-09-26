@@ -32,9 +32,6 @@ let appState = {
 let walletUpgradePromptTimer = null;
 let storageWriteFailureShown = false;
 let storageReady = false;
-let driveToolsReady = false;
-let linkedGoogleAccount = null;
-let linkedGoogleFolder = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.body.inert = true;
@@ -1498,17 +1495,17 @@ function deleteWalletFromSwal(id) {
 
 function openWalletsSummaryModal() {
   const listHtml = appState.wallets.map(w => `
-    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded mb-2 border">
-      <div>
-        <strong class="text-dark">${escapeHtml(w.name)}</strong>
-        <div class="small text-muted">
-          بطاقة: ${displayCard(w.cardNumber)} | افتتاحي: ${formatMoney(w.initialBalance || 0)}
+    <div class="wallet-balance-row">
+      <div class="wallet-balance-row__details">
+        <strong class="wallet-balance-row__name">${escapeHtml(w.name)}</strong>
+        <div class="wallet-balance-row__meta">
+          <span><i class="uil uil-credit-card"></i> ${displayCard(w.cardNumber)}</span>
+          <span><i class="uil uil-history"></i> افتتاحي ${formatMoney(w.initialBalance || 0)}</span>
         </div>
       </div>
-      <div class="text-end">
-        <span class="badge ${w.balance > 0 ? 'bg-primary' : 'bg-secondary'} fs-6">
-          الرصيد الحالي: ${formatMoney(w.balance)}
-        </span>
+      <div class="wallet-balance-row__current ${w.balance > 0 ? 'is-positive' : 'is-zero'}">
+        <span class="wallet-balance-row__label">الرصيد الحالي</span>
+        <strong>${formatMoney(w.balance)}</strong>
       </div>
     </div>
   `).join('');
@@ -1516,12 +1513,13 @@ function openWalletsSummaryModal() {
   Swal.fire({
     title: `ملخص رصيد المحافظ (${appState.wallets.length})`,
     html: `
-      <div class="text-start" style="max-height: 300px; overflow-y: auto;">
-        ${listHtml || '<div class="text-muted small">لا توجد محافظ مسجلة.</div>'}
+      <div class="wallet-balance-list">
+        ${listHtml || '<div class="wallet-balance-empty"><i class="uil uil-wallet"></i><span>لا توجد محافظ مسجلة.</span></div>'}
       </div>
     `,
     confirmButtonText: 'إغلاق النافذة',
-    confirmButtonColor: '#0d6efd'
+    confirmButtonColor: '#0d6efd',
+    customClass: { popup: 'wallet-balance-summary-popup' }
   });
 }
 
@@ -1596,271 +1594,14 @@ function openSettingsModal() {
             <input type="file" accept=".json" style="display:none;" onchange="importBackup(event)">
           </label>
         </div>
-        <hr>
-        <h6 class="fw-bold">Google Drive</h6>
-        <div class="d-flex gap-2 mb-2">
-          <button class="btn btn-sm btn-outline-primary w-50" id="drive-connect-btn" onclick="linkGoogleDriveAccount()" disabled><i class="uil uil-link me-1"></i> ربط حساب Google</button>
-          <button class="btn btn-sm btn-outline-secondary w-50" id="drive-disconnect-btn" onclick="unlinkGoogleDriveAccount()" disabled><i class="uil uil-unlink me-1"></i> إلغاء الربط</button>
-        </div>
-        <div class="d-flex gap-2 mb-2">
-          <button class="btn btn-sm btn-outline-primary w-50" id="drive-backup-export-btn" onclick="exportBackupToDrive()" disabled><i class="uil uil-google-drive-alt me-1"></i> حفظ نسخة على Drive</button>
-          <button class="btn btn-sm btn-outline-success w-50" id="drive-backup-restore-btn" onclick="restoreBackupFromDrive()" disabled><i class="uil uil-upload-alt me-1"></i> استعادة من Drive</button>
-        </div>
-        <button class="btn btn-sm btn-outline-secondary w-100 mb-2" id="drive-folder-btn" onclick="changeGoogleDriveFolder()" disabled><i class="uil uil-folder-open me-1"></i> تغيير مجلد النسخ</button>
-        <small class="text-muted d-block" id="drive-backup-status" aria-live="polite"></small>
       </div>
     `,
     showConfirmButton: false,
-    showCloseButton: true,
-    didOpen: preloadGoogleDriveTools
+    showCloseButton: true
   });
 }
 
-async function preloadGoogleDriveTools() {
-  const status = document.getElementById('drive-backup-status');
-  driveToolsReady = false;
-  updateGoogleDriveControls();
-  if (!CashflowDriveBackup.isConfigured()) {
-    if (status) status.textContent = 'يلزم إعداد Google OAuth وDrive API أولاً.';
-    return;
-  }
-  if (status) status.textContent = 'جاري تجهيز الاتصال الآمن بـGoogle...';
-  try {
-    await CashflowDriveBackup.preload();
-    [linkedGoogleAccount, linkedGoogleFolder] = await Promise.all([
-      CashflowDriveBackup.getLinkedAccount(),
-      CashflowDriveBackup.getBackupFolder()
-    ]);
-    driveToolsReady = true;
-    updateGoogleDriveControls();
-  } catch (error) {
-    console.warn('Google Drive tools could not be prepared:', error);
-    if (status?.isConnected) status.textContent = 'تعذر تحميل Google Drive. تحقق من الاتصال بالإنترنت.';
-  }
-}
 
-function updateGoogleDriveControls() {
-  const configured = CashflowDriveBackup.isConfigured();
-  const toolsReady = configured && driveToolsReady;
-  const accountLinked = Boolean(linkedGoogleAccount?.email);
-  const setDisabled = (id, disabled) => {
-    const button = document.getElementById(id);
-    if (button) button.disabled = disabled;
-  };
-  setDisabled('drive-connect-btn', false);
-  setDisabled('drive-disconnect-btn', !toolsReady || !accountLinked);
-  setDisabled('drive-backup-export-btn', false);
-  setDisabled('drive-backup-restore-btn', false);
-  setDisabled('drive-folder-btn', false);
-
-  const status = document.getElementById('drive-backup-status');
-  if (!status) return;
-  if (!configured) {
-    status.textContent = 'الربط يحتاج إعداد Google Cloud مرة واحدة. اضغط «ربط حساب Google» لعرض المطلوب.';
-    return;
-  }
-  if (!toolsReady) {
-    status.textContent = 'جاري تجهيز أدوات Google...';
-    return;
-  }
-  status.textContent = accountLinked
-    ? `مرتبط بالحساب ${linkedGoogleAccount.email}${linkedGoogleFolder ? ` · مجلد النسخ: ${linkedGoogleFolder.name}` : ' · اختر مجلد النسخ عند أول عملية حفظ'}`
-    : 'اربط حساب Google مرة واحدة للبدء.';
-}
-
-function openGoogleDriveLinking() {
-  const configured = CashflowDriveBackup.isConfigured();
-  Swal.fire({
-    title: 'ربط Google Drive',
-    html: `
-      <div class="text-start">
-        <p>اربط حساب Google مرة واحدة، ثم اختر مجلد النسخ. لن يحفظ التطبيق كلمة مرورك أو رمز دخولك.</p>
-        <div class="alert alert-info small mb-3" id="drive-link-status" role="status" aria-live="polite">
-          ${configured ? 'جاري تجهيز اتصال Google...' : 'يلزم إعداد Google Cloud مرة واحدة قبل تسجيل الدخول.'}
-        </div>
-        <button type="button" class="btn btn-primary w-100 fw-bold" id="drive-link-start-btn">
-          <i class="uil uil-google-drive-alt me-1"></i> ربط الحساب
-        </button>
-        ${configured ? '' : '<a class="btn btn-link w-100 mt-2" href="./GOOGLE_DRIVE_SETUP.md" target="_blank" rel="noopener">فتح خطوات إعداد Google خطوة بخطوة</a>'}
-      </div>
-    `,
-    showConfirmButton: false,
-    showCloseButton: true,
-    didOpen: async () => {
-      const button = document.getElementById('drive-link-start-btn');
-      const status = document.getElementById('drive-link-status');
-      if (!configured) {
-        button.addEventListener('click', showGoogleDriveSetupInstructions);
-        return;
-      }
-      try {
-        await preloadGoogleDriveTools();
-        if (!driveToolsReady) throw new Error('تعذر تجهيز أدوات Google. تحقق من اتصال الإنترنت.');
-        button.disabled = false;
-        status.textContent = linkedGoogleAccount
-          ? `الحساب المرتبط: ${linkedGoogleAccount.email}. يمكنك تغيير الحساب بإعادة الربط.`
-          : 'جاهز. اضغط لفتح اختيار حساب Google والموافقة على الربط.';
-        button.addEventListener('click', linkGoogleDriveAccount);
-      } catch (error) {
-        status.textContent = error.message;
-      }
-    }
-  });
-}
-
-function showGoogleDriveSetupInstructions() {
-  Swal.fire({
-    icon: 'info',
-    title: 'إعداد Google مطلوب مرة واحدة',
-    html: `
-      <div class="text-start small">
-        <p>المتصفح لا يسمح للموقع بالدخول لحساب Google تلقائيًا. قبل الربط، يلزم إعداد بيانات التطبيق في Google Cloud:</p>
-        <ol>
-          <li>إنشاء مشروع وتفعيل Google Drive API وGoogle Picker API.</li>
-          <li>إنشاء OAuth Client ID وإضافة عنوان GitHub Pages ضمن Authorized JavaScript origins.</li>
-          <li>إنشاء API Key مقيد بـGoogle Picker API وموقعك.</li>
-          <li>وضع Client ID وAPI Key ورقم المشروع في CONFIG أعلى <code>drive-backup.js</code>.</li>
-        </ol>
-        <p class="mb-2">لا ترسل كلمة المرور أو Client Secret لأي شخص.</p>
-        <a href="./GOOGLE_DRIVE_SETUP.md" target="_blank" rel="noopener">فتح دليل الإعداد الكامل</a>
-      </div>
-    `,
-    confirmButtonText: 'حسنًا'
-  });
-}
-
-async function linkGoogleDriveAccount() {
-  if (!CashflowDriveBackup.isConfigured()) {
-    showGoogleDriveSetupInstructions();
-    return;
-  }
-  if (!driveToolsReady) {
-    Swal.fire({ icon: 'info', title: 'اتصال Google غير جاهز', text: 'افتح «ربط Google Drive» وانتظر اكتمال تحميل الأدوات ثم حاول مرة أخرى.' });
-    return;
-  }
-  try {
-    const linkPromise = CashflowDriveBackup.linkAccount();
-    Swal.fire({ title: 'اختر حساب Google ووافق على الصلاحية...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    linkedGoogleAccount = await linkPromise;
-    linkedGoogleFolder = null;
-    Swal.fire({ icon: 'success', title: 'تم ربط حساب Google', text: linkedGoogleAccount.email });
-  } catch (error) {
-    console.error('Google account linking failed:', error);
-    Swal.fire({ icon: 'error', title: 'تعذر ربط حساب Google', text: error.message || 'تحقق من إعداد OAuth ثم حاول مرة أخرى.' });
-  }
-}
-
-async function unlinkGoogleDriveAccount() {
-  if (!linkedGoogleAccount) return;
-  const confirmation = await Swal.fire({
-    icon: 'warning',
-    title: 'إلغاء ربط الحساب من هذا التطبيق؟',
-    text: 'لن يحذف هذا نسخ Drive السابقة، لكنه يمسح الحساب والمجلد المحفوظين على هذا الجهاز.',
-    showCancelButton: true,
-    confirmButtonText: 'إلغاء الربط',
-    cancelButtonText: 'إبقاء الحساب'
-  });
-  if (!confirmation.isConfirmed) return;
-  await CashflowDriveBackup.unlinkAccount();
-  linkedGoogleAccount = null;
-  linkedGoogleFolder = null;
-  updateGoogleDriveControls();
-  Swal.fire({ icon: 'success', title: 'تم إلغاء الربط من هذا الجهاز' });
-}
-
-async function changeGoogleDriveFolder() {
-  if (!CashflowDriveBackup.isConfigured()) {
-    showGoogleDriveSetupInstructions();
-    return;
-  }
-  if (!linkedGoogleAccount) {
-    Swal.fire({ icon: 'info', title: 'اربط حساب Google أولاً', text: 'اربط الحساب من زر السايدبار قبل اختيار مجلد النسخ.' });
-    return;
-  }
-  if (!driveToolsReady) {
-    Swal.fire({ icon: 'info', title: 'اتصال Google غير جاهز', text: 'انتظر اكتمال تحميل أدوات Google ثم حاول مرة أخرى.' });
-    return;
-  }
-  try {
-    const tokenPromise = CashflowDriveBackup.requestAccessToken(linkedGoogleAccount.email);
-    Swal.fire({ title: 'جارٍ الاتصال بحساب Google المرتبط...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    const accessToken = await tokenPromise;
-    Swal.close();
-    const folder = await CashflowDriveBackup.pickFolder(accessToken);
-    if (!folder) return;
-    linkedGoogleFolder = await CashflowDriveBackup.setBackupFolder(folder);
-    updateGoogleDriveControls();
-    Swal.fire({ icon: 'success', title: 'تم حفظ مجلد النسخ', text: linkedGoogleFolder.name });
-  } catch (error) {
-    console.error('Google Drive folder selection failed:', error);
-    Swal.fire({ icon: 'error', title: 'تعذر اختيار مجلد Drive', text: error.message || 'تحقق من صلاحية الحساب والاتصال بالإنترنت.' });
-  }
-}
-
-async function exportBackupToDrive() {
-  if (!CashflowDriveBackup.isConfigured()) {
-    Swal.fire({ icon: 'info', title: 'إعداد Google Drive مطلوب', text: 'أضف بيانات Google OAuth وDrive API في ملف drive-backup.js ثم انشر التطبيق على HTTPS.' });
-    return;
-  }
-  if (!linkedGoogleAccount) {
-    Swal.fire({ icon: 'info', title: 'اربط حساب Google أولاً', text: 'استخدم زر «ربط حساب Google» مرة واحدة قبل حفظ النسخة.' });
-    return;
-  }
-
-  try {
-    const tokenPromise = CashflowDriveBackup.requestAccessToken(linkedGoogleAccount.email);
-    Swal.fire({ title: 'جارٍ الاتصال بحساب Google...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    const accessToken = await tokenPromise;
-    Swal.close();
-    if (!linkedGoogleFolder) {
-      const selectedFolder = await CashflowDriveBackup.pickFolder(accessToken);
-      if (!selectedFolder) return;
-      linkedGoogleFolder = await CashflowDriveBackup.setBackupFolder(selectedFolder);
-    }
-
-    Swal.fire({ title: 'جارٍ رفع النسخة الاحتياطية...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    await saveToLocalStorage();
-    const snapshot = await CashflowStorage.readSnapshot();
-    const backup = { ...appState, ...snapshot, currentFilter: appState.currentFilter };
-    const result = await CashflowDriveBackup.uploadBackup(accessToken, linkedGoogleFolder.id, backup);
-    Swal.fire({ icon: 'success', title: 'تم حفظ النسخة على Google Drive', text: result.name || 'تم إنشاء ملف النسخة الاحتياطية.' });
-  } catch (error) {
-    console.error('Google Drive backup failed:', error);
-    Swal.fire({ icon: 'error', title: 'تعذر حفظ النسخة على Drive', text: error.message || 'تحقق من إعداد Google والاتصال بالإنترنت ثم حاول مرة أخرى.' });
-  }
-}
-
-async function restoreBackupFromDrive() {
-  if (!CashflowDriveBackup.isConfigured()) {
-    Swal.fire({ icon: 'info', title: 'إعداد Google Drive مطلوب', text: 'أضف بيانات Google OAuth وDrive API في ملف drive-backup.js ثم انشر التطبيق على HTTPS.' });
-    return;
-  }
-  if (!storageReady) {
-    Swal.fire({ icon: 'error', title: 'التخزين غير جاهز', text: 'لم تكتمل تهيئة قاعدة البيانات، لذلك لم يتم استيراد النسخة الاحتياطية.' });
-    return;
-  }
-  if (!linkedGoogleAccount) {
-    Swal.fire({ icon: 'info', title: 'اربط حساب Google أولاً', text: 'استخدم زر «ربط حساب Google» مرة واحدة قبل استعادة نسخة.' });
-    return;
-  }
-
-  try {
-    const tokenPromise = CashflowDriveBackup.requestAccessToken(linkedGoogleAccount.email);
-    Swal.fire({ title: 'جارٍ الاتصال بحساب Google...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    const accessToken = await tokenPromise;
-    Swal.close();
-    const file = await CashflowDriveBackup.pickBackupFile(accessToken);
-    if (!file) return;
-
-    Swal.fire({ title: 'جارٍ تحميل النسخة الاحتياطية...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    const backup = await CashflowDriveBackup.downloadBackup(accessToken, file.id);
-    Swal.close();
-    await restoreBackupData(backup, file.name || 'Google Drive');
-  } catch (error) {
-    console.error('Google Drive restore failed:', error);
-    Swal.fire({ icon: 'error', title: 'تعذر استعادة النسخة من Drive', text: error.message || 'تحقق من إعداد Google والاتصال بالإنترنت ثم حاول مرة أخرى.' });
-  }
-}
 
 function saveRatesFromSwal() {
   const custRate = parseFloat(document.getElementById('swal-rate-cust').value) || 1.0;
@@ -2020,7 +1761,7 @@ async function removeAppFromThisDevice() {
   const confirmation = await Swal.fire({
     icon: 'warning',
     title: `حذف بيانات التطبيق من ${deviceLabel}؟`,
-    html: `<div class="text-start small"><p>سيحذف هذا الإجراء من ${deviceLabel}:</p><ul><li>كل المحافظ والمعاملات والملاحظات والإعدادات المحلية.</li><li>بيانات الربط المحلية وملفات التطبيق المحفوظة للعمل دون إنترنت.</li><li>تسجيل Service Worker الخاص بالتطبيق.</li></ul><p class="fw-bold text-danger">هذا يمسح بيانات Cashflow من المتصفح الحالي فقط. لن يحذف نسخ Google Drive، ولا يستطيع الموقع إزالة أيقونة التطبيق المثبّتة بنفسه.</p><p>للمتابعة اكتب <strong>حذف التطبيق</strong> في المربع.</p></div>`,
+    html: `<div class="text-start small"><p>سيحذف هذا الإجراء من ${deviceLabel}:</p><ul><li>كل المحافظ والمعاملات والملاحظات والإعدادات المحلية.</li><li>بيانات الربط المحلية وملفات التطبيق المحفوظة للعمل دون إنترنت.</li><li>تسجيل Service Worker الخاص بالتطبيق.</li></ul><p class="fw-bold text-danger">هذا يمسح بيانات Cashflow من المتصفح الحالي فقط، ولا يستطيع الموقع إزالة أيقونة التطبيق المثبّتة بنفسه.</p><p>للمتابعة اكتب <strong>حذف التطبيق</strong> في المربع.</p></div>`,
     input: 'text',
     inputPlaceholder: 'حذف التطبيق',
     showCancelButton: true,
@@ -2062,7 +1803,7 @@ async function removeAppFromThisDevice() {
     Swal.fire({
       icon: 'success',
       title: isMobileDevice ? 'تم حذف بيانات Cashflow من هذا الجهاز' : 'تم حذف بيانات Cashflow من هذا الكمبيوتر',
-      html: `<div class="text-start small"><p>تم حذف قاعدة IndexedDB التي تحتوي بياناتك، وكاش ملفات Offline، ومفاتيح التطبيق المحلية، وإلغاء تسجيل Service Worker من ملف المتصفح الحالي.</p><p class="fw-bold">لإزالة التطبيق وأي بيانات متبقية من الجهاز:</p>${uninstallInstructions}<p class="mb-0">نسخ Google Drive لا تتأثر بهذا الحذف.</p></div>`,
+      html: `<div class="text-start small"><p>تم حذف قاعدة IndexedDB التي تحتوي بياناتك، وكاش ملفات Offline، ومفاتيح التطبيق المحلية، وإلغاء تسجيل Service Worker من ملف المتصفح الحالي.</p><p class="fw-bold">لإزالة التطبيق وأي بيانات متبقية من الجهاز:</p>${uninstallInstructions}</div>`,
       confirmButtonText: 'حسنًا'
     });
   } catch (error) {
